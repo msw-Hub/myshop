@@ -9,8 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -91,23 +89,26 @@ public class KakaoPayApiClient {
 
     public KakaoPayCancelResponseDto requestCancelPayment(KakaoPayCancelRequestDto dto) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "SECRET_KEY " + adminKey);
 
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("cid", cid);
-        params.add("tid", dto.getTid());
-        params.add("cancel_amount", String.valueOf(dto.getCancelAmount()));
-        params.add("cancel_tax_free_amount", "0"); // 생략 가능
+        Map<String, Object> body = new HashMap<>();
+        body.put("cid", cid);
+        body.put("tid", dto.getTid());
+        body.put("cancel_amount", dto.getCancelAmount());
+        body.put("cancel_tax_free_amount", 0);
+        body.put("cancel_vat_amount", 0);
+        body.put("cancel_available_amount", dto.getCancelAmount());
 
-        HttpEntity<MultiValueMap<String, String>> req = new HttpEntity<>(params, headers);
+        HttpEntity<Map<String, Object>> req = new HttpEntity<>(body, headers);
 
         ResponseEntity<KakaoPayCancelResponseDto> response = restTemplate.postForEntity(
-                host + "/v1/payment/cancel",
+                "https://open-api.kakaopay.com/online/v1/payment/cancel",
                 req,
                 KakaoPayCancelResponseDto.class
         );
 
         return response.getBody();
     }
+
 }

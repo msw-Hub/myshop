@@ -3,6 +3,8 @@ package com.example.myShop.controller;
 import com.example.myShop.dto.CartDetailDto;
 import com.example.myShop.dto.CartItemDto;
 import com.example.myShop.dto.CartOrderDto;
+import com.example.myShop.kakaopay.KakaoPayService;
+import com.example.myShop.kakaopay.dto.KakaoPayReadyResponseDto;
 import com.example.myShop.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.List;
 public class CartController {
 
     private final CartService cartService;
+    private final KakaoPayService kakaoPayService;
 
     @PostMapping(value = "/cart")
     public @ResponseBody ResponseEntity<?> order(
@@ -104,8 +107,19 @@ public class CartController {
             }
         }
 
+        // 1. 장바구니 주문 처리 → orderId 반환
         Long orderId = cartService.orderCartItem(cartOrderDtoList, principal.getName());
-        return new ResponseEntity<Long>(orderId, HttpStatus.OK);
+
+        // 2. 카카오페이 결제 준비 요청
+        try {
+            KakaoPayReadyResponseDto responseDto = kakaoPayService.readyPayment(orderId, principal.getName());
+
+            // 3. 클라이언트에게 redirect URL 반환
+            return ResponseEntity.ok().body(responseDto.getNextRedirectPcUrl());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("카카오페이 결제 준비 중 오류 발생: " + e.getMessage());
+        }
     }
 
 }

@@ -108,7 +108,8 @@ public class KakaoPayService {
                         "결제수단: 카카오페이\n" +
                         "결제번호(TID): %s\n" +
                         "구매자: %s\n" +
-                        "주문상품: %s",
+                        "주문상품: %s\n"+
+                        "*저희 team2 몰디브를 이용해주셔서 감사합니다.*",
                 order.getId(),
                 order.getTotalPrice(),
                 order.getPaymentDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
@@ -134,7 +135,8 @@ public class KakaoPayService {
                             "취소일시: %s\n" +
                             "결제수단: 카카오페이\n" +
                             "결제번호(TID): %s\n" +
-                            "구매자: %s",
+                            "구매자: %s\n"+
+                            "*저희 team2 몰디브를 이용해주셔서 감사합니다.*",
                     order.getId(),
                     order.getTotalPrice(),
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
