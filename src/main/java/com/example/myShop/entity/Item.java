@@ -7,7 +7,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "t_item")
@@ -37,9 +36,6 @@ public class Item extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ItemSellStatus itemSellStatus; // 상품판매상태
 
-    private LocalDateTime regTime;   // 등록시간
-    private LocalDateTime updateTime; // 수정시간
-
     public void updateItem(ItemFormDto itemFormDto) {
         this.itemName = itemFormDto.getItemName();
         this.price = itemFormDto.getPrice();
@@ -54,6 +50,10 @@ public class Item extends BaseEntity {
             throw new IllegalArgumentException("상품의 재고가 부족합니다. ( 현재 재고: " + this.stockNumber + ", 요청 수량: " + stockNumber + " )");
         }
         this.stockNumber = restStock;
+    }
+
+    public void addStock(int stockNumber) {
+        this.stockNumber += stockNumber;
     }
 
 }

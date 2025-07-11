@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "t_orderitem")
@@ -40,4 +39,9 @@ public class OrderItem {
     public int getTotalPrice() {
         return orderPrice * count; // 주문 상품의 총 가격은 주문 가격 * 수량
     }
+
+    public void cancel() {
+        this.getItem().addStock(count); // 주문 취소 시 상품의 재고를 증가시킴
+    }
+
 }

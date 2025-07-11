@@ -1,7 +1,10 @@
 package com.example.myShop.kakaopay;
 
-import com.example.myShop.entity.*;
+import com.example.myShop.entity.Order;
+import com.example.myShop.entity.PaymentStatus;
 import com.example.myShop.kakaopay.dto.KakaoPayApproveResponseDto;
+import com.example.myShop.kakaopay.dto.KakaoPayCancelRequestDto;
+import com.example.myShop.kakaopay.dto.KakaoPayCancelResponseDto;
 import com.example.myShop.kakaopay.dto.KakaoPayReadyResponseDto;
 import com.example.myShop.repository.OrderRepository;
 import com.example.myShop.slack.SlackNotifier;
@@ -13,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityNotFoundException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -64,10 +69,8 @@ public class KakaoPayService {
                 order.setKakaoTid(response.getTid());
                 orderRepository.save(order);
 
-                slackNotifier.sendMessage(
-                        String.format(":white_check_mark: 결제 승인 완료\n주문ID: %d\n금액: %,d원\n사용자: %s",
-                                order.getId(), order.getTotalPrice(), order.getMember().getEmail())
-                );
+                // Slack 메시지 전송 부분을 메서드로 분리하여 호출
+                sendPaymentApprovedMessage(order);
 
                 log.info("Order payment status updated to APPROVED for order id: {}", order.getId());
             } else {
@@ -91,4 +94,72 @@ public class KakaoPayService {
             throw new RuntimeException("결제 승인 중 오류가 발생했습니다.");
         }
     }
+
+    public void sendPaymentApprovedMessage(Order order) {
+        String productList = order.getOrderItems().stream()
+                .map(oi -> oi.getItem().getItemName() + " x" + oi.getCount())
+                .collect(Collectors.joining(", "));
+
+        String message = String.format(
+                ":white_check_mark: 결제 승인 완료\n" +
+                        "주문번호: %d\n" +
+                        "결제금액: %,d원\n" +
+                        "결제일시: %s\n" +
+                        "결제수단: 카카오페이\n" +
+                        "결제번호(TID): %s\n" +
+                        "구매자: %s\n" +
+                        "주문상품: %s",
+                order.getId(),
+                order.getTotalPrice(),
+                order.getPaymentDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                order.getKakaoTid(),
+                order.getMember().getEmail(),
+                productList
+        );
+
+        slackNotifier.sendMessage(message);
+    }
+
+    @Transactional
+    public KakaoPayCancelResponseDto cancelPayment(Order order) {
+        try {
+            KakaoPayCancelResponseDto response = kakaoPayApiClient.requestCancelPayment(
+                    new KakaoPayCancelRequestDto(order.getKakaoTid(), order.getTotalPrice())
+            );
+
+            String message = String.format(
+                    ":white_check_mark: 결제 취소 완료\n" +
+                            "주문번호: %d\n" +
+                            "결제금액: %,d원\n" +
+                            "취소일시: %s\n" +
+                            "결제수단: 카카오페이\n" +
+                            "결제번호(TID): %s\n" +
+                            "구매자: %s",
+                    order.getId(),
+                    order.getTotalPrice(),
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                    order.getKakaoTid(),
+                    order.getMember().getEmail()
+            );
+
+            slackNotifier.sendMessage(message);
+
+            return response;
+
+        } catch (Exception e) {
+            String errorMessage = String.format(
+                    ":x: 결제 취소 실패\n" +
+                            "주문번호: %d\n" +
+                            "에러: %s",
+                    order.getId(),
+                    e.getMessage()
+            );
+
+            slackNotifier.sendMessage(errorMessage);
+
+            throw new RuntimeException("결제 취소 중 오류 발생", e);
+        }
+    }
+
+
 }

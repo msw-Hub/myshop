@@ -4,8 +4,9 @@ import com.example.myShop.dto.OrderDto;
 import com.example.myShop.dto.OrderHistoryDto;
 import com.example.myShop.dto.OrderItemDto;
 import com.example.myShop.entity.*;
+import com.example.myShop.kakaopay.KakaoPayService;
 import com.example.myShop.kakaopay.dto.CreateOrderRequestDto;
-import com.example.myShop.kakaopay.dto.OrderRequestDto;
+import com.example.myShop.kakaopay.dto.KakaoPayCancelResponseDto;
 import com.example.myShop.repository.ItemImgRepository;
 import com.example.myShop.repository.ItemRepository;
 import com.example.myShop.repository.MemberRepository;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.util.StringUtils;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class OrderService {
     private final ItemRepository itemRepository;
     private final MemberRepository memberRepository;
     private final ItemImgRepository itemImgRepository;
+    private final KakaoPayService kakaoPayService;
 
 //    public Long order(OrderDto orderDto, String email) {
 //        // 1. 상품 조회
@@ -93,6 +96,43 @@ public class OrderService {
         return new PageImpl<>(orderHistDtos, pageable, totalCount);
     }
 
+    @Transactional(readOnly = true)
+    public boolean validateOrder(Long orderId, String email) {
+        Member curMember = memberRepository.findByEmail(email);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(EntityNotFoundException::new);
 
+        Member savedMember = order.getMember();
+        return StringUtils.equals(curMember.getEmail(), savedMember.getEmail());
+    }
+    public void cancelOrder(Long orderId){
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(EntityNotFoundException::new);
+
+        // 결제 완료된 주문이라면 카카오페이 결제 취소 먼저 수행
+        if (order.getPaymentStatus() == PaymentStatus.APPROVED) {
+            KakaoPayCancelResponseDto dto = kakaoPayService.cancelPayment(order); // ← 이 메서드 추가 필요
+            order.setPaymentStatus(PaymentStatus.CANCELLED); // 결제 상태도 변경
+        }
+
+        order.cancelOrder();
+    }
+    public Long orders(List<OrderDto> orderDtoList, String email) {
+        Member member = memberRepository.findByEmail(email);
+        List<OrderItem> orderItemList = new ArrayList<>();
+
+        for (OrderDto orderDto : orderDtoList) {
+            Item item = itemRepository.findById(orderDto.getItemId())
+                    .orElseThrow(EntityNotFoundException::new);
+
+            OrderItem orderItem = OrderItem.createOrderItem(item, orderDto.getCount());
+            orderItemList.add(orderItem);
+        }
+
+        Order order = Order.createOrder(member, orderItemList);
+        orderRepository.save(order);
+
+        return order.getId();
+    }
 
 }

@@ -1,12 +1,13 @@
 package com.example.myShop.kakaopay;
 
 import com.example.myShop.entity.Order;
-import com.example.myShop.kakaopay.dto.KakaoPayApproveResponseDto;
-import com.example.myShop.kakaopay.dto.KakaoPayReadyRequest;
-import com.example.myShop.kakaopay.dto.KakaoPayReadyResponseDto;
+import com.example.myShop.kakaopay.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -86,5 +87,27 @@ public class KakaoPayApiClient {
         HttpEntity<Map<String,Object>> req = new HttpEntity<>(body, headers);
         ResponseEntity<KakaoPayApproveResponseDto> resp = restTemplate.postForEntity(approveUrl, req, KakaoPayApproveResponseDto.class);
         return resp.getBody();
+    }
+
+    public KakaoPayCancelResponseDto requestCancelPayment(KakaoPayCancelRequestDto dto) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "SECRET_KEY " + adminKey);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("cid", cid);
+        params.add("tid", dto.getTid());
+        params.add("cancel_amount", String.valueOf(dto.getCancelAmount()));
+        params.add("cancel_tax_free_amount", "0"); // 생략 가능
+
+        HttpEntity<MultiValueMap<String, String>> req = new HttpEntity<>(params, headers);
+
+        ResponseEntity<KakaoPayCancelResponseDto> response = restTemplate.postForEntity(
+                host + "/v1/payment/cancel",
+                req,
+                KakaoPayCancelResponseDto.class
+        );
+
+        return response.getBody();
     }
 }

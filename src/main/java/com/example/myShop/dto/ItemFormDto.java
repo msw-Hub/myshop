@@ -27,6 +27,16 @@ public class ItemFormDto {
     private List<ItemImgDto> itemImgDtoList = new ArrayList<>(); // 상품 저장 후 수정할 때 상품 이미지 정보 저장 리스트
     private List<Long> itemImgIds = new ArrayList<>(); // 상품 이미지 아이디 저장하는 리스트(수정 시 이미지 아이디 담을 용도)
     private static ModelMapper modelMapper = new ModelMapper();
+
+    static {
+        modelMapper.getConfiguration().setSkipNullEnabled(true); // null 값 매핑 방지
+        modelMapper.typeMap(ItemFormDto.class, Item.class)
+                .addMappings(mapper -> {
+                    mapper.skip(Item::setRegTime);    // regTime 매핑 제외
+                    mapper.skip(Item::setUpdateTime); // updateTime 매핑 제외
+                });
+    }
+
     public Item createItem(){
         return modelMapper.map(this, Item.class);
     }

@@ -72,5 +72,13 @@ public class Order {
         return totalPrice;
     }
 
+    public void cancelOrder() {
+        this.setOrderStatus(OrderStatus.CANCEL); // 주문 상태를 취소로 변경
+        for (OrderItem orderItem : orderItems) {
+            orderItem.cancel(); // 주문 상품의 재고를 증가시킴
+        }
+    }
+
+
 
 }

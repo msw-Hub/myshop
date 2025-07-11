@@ -9,7 +9,7 @@ import java.util.Optional;
 public class AuditorAwareImpl implements AuditorAware<String> {
     @Override
     public Optional<String> getCurrentAuditor() {
-//현재 로그인한 사용자의 인증 정보 (Spring Security의 SecurityContext에서 가져옴)
+        //현재 로그인한 사용자의 인증 정보 (Spring Security의 SecurityContext에서 가져옴)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = "";
         if(authentication != null){

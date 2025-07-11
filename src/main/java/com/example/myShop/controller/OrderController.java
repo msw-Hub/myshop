@@ -1,10 +1,7 @@
 package com.example.myShop.controller;
 
-import com.example.myShop.dto.OrderDto;
 import com.example.myShop.dto.OrderHistoryDto;
 import com.example.myShop.kakaopay.dto.CreateOrderRequestDto;
-import com.example.myShop.kakaopay.dto.OrderRequestDto;
-import com.example.myShop.repository.OrderRepository;
 import com.example.myShop.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.security.Principal;
-import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -93,4 +89,16 @@ public class OrderController {
         return "order/orderHistory";
     }
 
+    @PostMapping("/order/{orderId}/cancel")
+    public @ResponseBody ResponseEntity<?> cancelOrder(
+            @PathVariable Long orderId,
+            Principal principal
+    ) {
+        if(!orderService.validateOrder(orderId, principal.getName())){
+            return new ResponseEntity<>("주문 권한이 없습니다.", HttpStatus.FORBIDDEN);
+        }
+        orderService.cancelOrder(orderId);
+
+        return new ResponseEntity<Long>(orderId, HttpStatus.OK);
+    }
 }
