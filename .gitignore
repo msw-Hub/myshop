@@ -34,8 +34,6 @@ build/
 
 
 # application 설정 파일 무시
-src/main/resources/application.properties
-src/main/resources/application-test.properties
 
 # 모듈 설정 파일 무시
 /*.iml
